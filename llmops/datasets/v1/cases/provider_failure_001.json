@@ -1,0 +1,16 @@
+{
+  "case_id": "provider_failure_001",
+  "decision_applicable": true,
+  "document_text": "DOC FLOW SCENARIO:PROVIDER_FAILURE fictional provider failure provider_failure_001",
+  "expected_decision": "provider_failure",
+  "expected_error_class": "timeout",
+  "expected_final_state": "failed",
+  "expected_invoice": null,
+  "fake_scenario": "provider_failure",
+  "field_comparison_applicable": false,
+  "rule_overrides": {},
+  "scenario_tags": [
+    "provider_failure"
+  ],
+  "schema_applicable": false
+}

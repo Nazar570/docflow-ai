@@ -1,0 +1,21 @@
+{
+  "case_files": [
+    "cases/clean_success_001.json",
+    "cases/clean_success_002.json",
+    "cases/low_confidence_001.json",
+    "cases/missing_fields_001.json",
+    "cases/invalid_total_001.json",
+    "cases/unsupported_currency_001.json",
+    "cases/unknown_supplier_001.json",
+    "cases/po_mismatch_001.json",
+    "cases/duplicate_invoice_001.json",
+    "cases/malformed_001.json",
+    "cases/provider_failure_001.json",
+    "cases/auto_limit_001.json",
+    "cases/clean_success_003.json",
+    "cases/low_confidence_002.json"
+  ],
+  "dataset_version": "v1",
+  "description": "Small fictional DocFlow golden set for deterministic fake-provider evaluation.",
+  "limitations": "This dataset contains only clearly fictional invoices and is intentionally small. Metrics are local and deterministic against the fake provider; they are not a claim of production accuracy or generalization."
+}

@@ -1,0 +1,330 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: docflow
+      POSTGRES_USER: docflow
+      POSTGRES_PASSWORD: docflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docflow -d docflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+
+  erp_mock:
+    build:
+      context: .
+      dockerfile: services/erp_mock/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: docflow-erp-mock
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: services/ingestion/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://docflow:docflow@postgres:5432/docflow
+      ERP_BASE_URL: http://erp_mock:8001
+      REDIS_URL: redis://redis:6379/0
+      LLM_MODE: test
+      LLM_PRIMARY_PROVIDER: fake
+      LLM_FALLBACK_ENABLED: "false"
+      QWEN_BASE_URL: http://host.docker.internal:8080/v1
+      QWEN_MODEL_ID: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+      GEMINI_API_KEY: ""
+      GEMINI_MODEL_ID: gemini-2.5-flash
+      LLM_TIMEOUT_SECONDS: "60"
+      LLM_MAX_RETRIES: "2"
+      AUTO_APPROVAL_CONFIDENCE_THRESHOLD: "0.90"
+      AUTO_APPROVAL_LIMIT: "1000.00"
+      SUPPORTED_CURRENCIES: EUR,USD,PLN
+      TOTALS_TOLERANCE: "0.01"
+      DOCUMENT_STORAGE_DIR: /data/documents
+      CELERY_WORKER_MAX_RETRIES: "3"
+      CELERY_RETRY_BACKOFF_BASE: "2"
+      CELERY_RETRY_BACKOFF_MAX: "60"
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: docflow-ingestion
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - document_data:/data/documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      erp_mock:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9101:9101"
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://docflow:docflow@postgres:5432/docflow
+      ERP_BASE_URL: http://erp_mock:8001
+      REDIS_URL: redis://redis:6379/0
+      LLM_MODE: test
+      LLM_PRIMARY_PROVIDER: fake
+      LLM_FALLBACK_ENABLED: "false"
+      QWEN_BASE_URL: http://host.docker.internal:8080/v1
+      QWEN_MODEL_ID: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+      GEMINI_API_KEY: ""
+      GEMINI_MODEL_ID: gemini-2.5-flash
+      LLM_TIMEOUT_SECONDS: "60"
+      LLM_MAX_RETRIES: "2"
+      AUTO_APPROVAL_CONFIDENCE_THRESHOLD: "0.90"
+      AUTO_APPROVAL_LIMIT: "1000.00"
+      SUPPORTED_CURRENCIES: EUR,USD,PLN
+      TOTALS_TOLERANCE: "0.01"
+      DOCUMENT_STORAGE_DIR: /data/documents
+      CELERY_WORKER_MAX_RETRIES: "3"
+      CELERY_RETRY_BACKOFF_BASE: "2"
+      CELERY_RETRY_BACKOFF_MAX: "60"
+      WORKER_METRICS_PORT: "9101"
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: docflow-worker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - document_data:/data/documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      erp_mock:
+        condition: service_healthy
+      ingestion:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/metrics')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 768m
+
+  review_ui:
+    build:
+      context: .
+      dockerfile: services/review_ui/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      APP_ENV: development
+      REVIEW_API_BASE_URL: http://ingestion:8000
+    depends_on:
+      ingestion:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    mem_limit: 256m
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.66.0
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:16686/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --storage.tsdb.retention.time=24h
+    ports:
+      - "9091:9090"
+    depends_on:
+      ingestion:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      erp_mock:
+        condition: service_healthy
+      alertmanager:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://127.0.0.1:9090/-/healthy",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://127.0.0.1:9093/-/healthy",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 128m
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://127.0.0.1:3000/api/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 384m
+
+volumes:
+  postgres_data:
+  document_data:
+  prometheus_data:
+  grafana_data:

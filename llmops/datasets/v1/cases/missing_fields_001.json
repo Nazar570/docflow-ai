@@ -1,0 +1,16 @@
+{
+  "case_id": "missing_fields_001",
+  "decision_applicable": true,
+  "document_text": "DOC FLOW SCENARIO:MISSING_FIELDS fictional missing fields missing_fields_001",
+  "expected_decision": "needs_review",
+  "expected_error_class": "provider_output_error",
+  "expected_final_state": "needs_review",
+  "expected_invoice": null,
+  "fake_scenario": "missing_fields",
+  "field_comparison_applicable": false,
+  "rule_overrides": {},
+  "scenario_tags": [
+    "missing_invoice_number"
+  ],
+  "schema_applicable": true
+}

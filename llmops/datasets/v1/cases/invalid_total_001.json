@@ -1,0 +1,47 @@
+{
+  "case_id": "invalid_total_001",
+  "decision_applicable": true,
+  "document_text": "DOC FLOW SCENARIO:INVALID_TOTAL fictional invalid total invalid_total_001",
+  "expected_decision": "needs_review",
+  "expected_error_class": null,
+  "expected_final_state": "needs_review",
+  "expected_invoice": {
+    "currency": "EUR",
+    "field_confidence": {
+      "currency": 0.96,
+      "invoice_date": 0.96,
+      "invoice_number": 0.96,
+      "line_items": 0.96,
+      "supplier_name": 0.96,
+      "total_amount": 0.96
+    },
+    "invoice_date": "2026-03-15",
+    "invoice_number": "INV-1001",
+    "line_items": [
+      {
+        "description": "Paper reams",
+        "line_total": "50.00",
+        "quantity": "5",
+        "unit_price": "10.00"
+      },
+      {
+        "description": "Toner cartridge",
+        "line_total": "75.50",
+        "quantity": "1",
+        "unit_price": "75.50"
+      }
+    ],
+    "overall_confidence": 0.96,
+    "purchase_order_id": "po-1001",
+    "supplier_id": "sup-acme-001",
+    "supplier_name": "Acme Supplies GmbH",
+    "total_amount": "999.99"
+  },
+  "fake_scenario": "invalid_total",
+  "field_comparison_applicable": true,
+  "rule_overrides": {},
+  "scenario_tags": [
+    "incorrect_total"
+  ],
+  "schema_applicable": true
+}

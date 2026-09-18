@@ -1,0 +1,16 @@
+{
+  "case_id": "malformed_001",
+  "decision_applicable": true,
+  "document_text": "DOC FLOW SCENARIO:MALFORMED fictional malformed extraction malformed_001",
+  "expected_decision": "needs_review",
+  "expected_error_class": "provider_output_error",
+  "expected_final_state": "needs_review",
+  "expected_invoice": null,
+  "fake_scenario": "malformed",
+  "field_comparison_applicable": false,
+  "rule_overrides": {},
+  "scenario_tags": [
+    "provider_malformed_json"
+  ],
+  "schema_applicable": true
+}

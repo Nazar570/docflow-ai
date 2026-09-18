@@ -1,0 +1,11 @@
+{
+  "dataset_version": "v1",
+  "provider": "fake",
+  "fixture": "baseline",
+  "minimum_metrics": {
+    "schema_validity_rate": 0.8461538461538461,
+    "field_accuracy": 1.0,
+    "decision_accuracy": 1.0,
+    "case_success_rate": 1.0
+  }
+}

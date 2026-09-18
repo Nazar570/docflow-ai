@@ -1,0 +1,6 @@
+Extract structured invoice data from the document text.
+Return JSON matching the invoice schema exactly.
+Use ISO date format YYYY-MM-DD for invoice_date.
+Use decimal strings for monetary amounts.
+Include overall_confidence and field_confidence values between 0 and 1.
+Do not invent suppliers, invoice numbers, or amounts that are not supported by the document text.

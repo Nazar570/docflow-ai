@@ -1,0 +1,39 @@
+groups:
+  - name: docflow
+    rules:
+      - alert: DocFlowDLQDepthHigh
+        expr: docflow_dlq_depth > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: DocFlow DLQ depth is elevated
+          description: Dead-letter queue depth is greater than zero.
+          runbook_url: docs/runbook.md#docflowdlqdepthhigh
+      - alert: DocFlowProviderFailureRateHigh
+        expr: sum(rate(docflow_provider_failures_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: DocFlow provider failure rate is elevated
+          description: Provider failure rate exceeds the warning threshold.
+          runbook_url: docs/runbook.md#docflowproviderfailureratehigh
+      - alert: DocFlowERPSubmissionFailureRateHigh
+        expr: sum(rate(docflow_erp_submissions_total{outcome="failure"}[5m])) / clamp_min(sum(rate(docflow_erp_submissions_total[5m])), 0.001) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: DocFlow ERP submission failure rate is elevated
+          description: ERP submission failure ratio exceeds the critical threshold.
+          runbook_url: docs/runbook.md#docflowerpsubmissionfailureratehigh
+      - alert: DocFlowHumanReviewRateHigh
+        expr: sum(rate(docflow_human_review_routed_total[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: DocFlow human review routing rate is elevated
+          description: Human review routing rate exceeds the warning threshold.
+          runbook_url: docs/runbook.md#docflowhumanreviewratehigh
